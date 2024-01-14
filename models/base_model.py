@@ -1,87 +1,77 @@
 #!/usr/bin/python3
-"""
-Module for the BaseModel class.
-"""
-import uuid
+"""This is the base model."""
+
+from uuid import uuid4
 from datetime import datetime
 import models
 
 
 class BaseModel:
+    """BaseModel class."""
+
     def __init__(self, *args, **kwargs):
-        """
-        Initialize a new BaseModel instance.
+        """Instance Constructor.
 
         Args:
-            *args: Additional arguments (not used).
-            **kwargs: Keyword arguments for attribute initialization.
+            id (str): Unique identifier.
+            created_at (datetime): Date created at.
+            updated_at (datetime): Date updated at.
         """
-        time_format = "%Y-%m-%dT%H:%M:%S.%f"
-        self.id = str(uuid.uuid4())
-        self.created_at = datetime.now()
-        self.updated_at = datetime.now()
+        if not kwargs:
+            self.id = str(uuid4())
+            self.created_at = datetime.now()
+            self.updated_at = datetime.now()
+            models.storage.new(self)
+        else:
+            for k, v in kwargs.items():
+                if k != "__class__":
+                    setattr(
+                        self, k, datetime.fromisoformat(v) if k.endswith("_at") else v
+                    )
 
-        if kwargs:
-            for key, value in kwargs.items():
-                if key == "__class__":
-                    continue
-                elif key in ["created_at", "updated_at"]:
-                    setattr(self, key, datetime.strptime(value, time_format))
-                else:
-                    setattr(self, key, value)
+    def __str__(self):
+        """__str__.
 
-        models.storage.new(self)
+        Return string representation.
+        """
+        class_name = self.__class__.__name__
+        attributes = ", ".join(f"{key}={value}" for key, value in self.__dict__.items())
+        return f"[{class_name}] ({self.id}) {attributes}"
 
     def save(self):
-        """
-        Save the instance to storage.
+        """Save.
+
+        Update atr updated_at.
         """
         self.updated_at = datetime.now()
         models.storage.save()
 
     def to_dict(self):
-        """
-        Convert the instance to a dictionary.
+        """To_dict.
 
         Returns:
-            dict: A dictionary representation of the instance.
+            dict: Dictionary representation.
         """
-        return {
-            **self.__dict__,
-            "__class__": self.__class__.__name__,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
-        }
-
-    def __str__(self):
-        """
-        Return a string representation of the instance.
-
-        Returns:
-            str: A string representation of the instance.
-        """
-        return f"[{self.__class__.__name__}] ({self.id}) {self.name}, {self.my_number}"
+        my_class_dict = self.__dict__.copy()
+        my_class_dict["__class__"] = self.__class__.__name__
+        my_class_dict["updated_at"] = self.updated_at.isoformat()
+        my_class_dict["created_at"] = self.created_at.isoformat()
+        return my_class_dict
 
 
 if __name__ == "__main__":
+    """Example usage in the __main__ block"""
     my_model = BaseModel()
     my_model.name = "My_First_Model"
     my_model.my_number = 89
-    print(my_model.id)
+
+    print("Original Instance:")
     print(my_model)
-    print(type(my_model.created_at))
-    print("--")
-    my_model_json = my_model.to_dict()
-    print(my_model_json)
-    print("JSON of my_model:")
-    for key, value in my_model_json.items():
-        print(f"\t{key}: ({type(value)}) - {value}")
 
-    print("--")
-    my_new_model = BaseModel(**my_model_json)
-    print(my_new_model.id)
+    """Convert to dictionary and back to a new instance"""
+    my_model_dict = my_model.to_dict()
+    my_new_model = BaseModel(**my_model_dict)
+
+    print("\nNew Instance:")
     print(my_new_model)
-    print(type(my_new_model.created_at))
-
-    print("--")
-    print(my_model is my_new_model)
+    print("\nInstances are the same:", my_model is my_new_model)
