@@ -1,77 +1,58 @@
 #!/usr/bin/python3
-"""Unittest for base model
 """
-import unittest
-from models.base_model import BaseModel
-from models import storage
+Module for the BaseModel class.
+"""
+import uuid
 from datetime import datetime
+import models
 
 
-class TestBaseModel(unittest.TestCase):
-    """
-    test class for the max_integer() function.
-    """
-    base = BaseModel()
-    base.name = "My First Model"
-    base.my_number = 89
+class BaseModel:
+    def __init__(self, *args, **kwargs):
+        self.id = str(uuid.uuid4())
+        self.created_at = datetime.utcnow()
+        self.updated_at = datetime.utcnow()
 
-    def test_create_instance_without_kwargs(self):
-        """
-        create an instance of class without kwargs
-        """
-        self.assertIsInstance(self.base, BaseModel)
-        self.assertIsInstance(self.base.id, str)
-        self.assertIsInstance(self.base.created_at, datetime)
-        self.assertIsInstance(self.base.updated_at, datetime)
-        self.assertEqual(self.base.name, "My First Model")
-        self.assertEqual(self.base.my_number, 89)
+    def save(self):
+        """ """
+        self.updated_at = datetime.utcnow()
 
-    def test_create_instance_with_kwargs(self):
-        """
-        create an instance of class using kwargs
-        """
-        my_base_json = self.base.to_dict()
-        new_base = BaseModel(**my_base_json)
-        self.assertIsInstance(new_base, BaseModel)
-        self.assertIsInstance(new_base.id, str)
-        self.assertIsInstance(new_base.created_at, datetime)
-        self.assertIsInstance(new_base.updated_at, datetime)
-        self.assertEqual(new_base.name, "My First Model")
-        self.assertEqual(new_base.my_number, 89)
-        self.assertNotEqual(new_base, self.base)
-        self.assertDictEqual(new_base.__dict__, self.base.__dict__)
+    def to_dict(self):
+        """ """
+        inst_dict = self.__dict__.copy()
+        inst_dict["__class__"] = self.__class__.__name__
+        inst_dict["created_at"] = self.created_at.isoformat()
+        inst_dict["updated_at"] = self.updated_at.isoformat()
 
-    def test_to_dict(self):
-        """
-            test to_dict class method
-        """
-        to_dict_returned_dict = self.base.to_dict()
-        expected_dic = self.base.__dict__.copy()
-        expected_dic["__class__"] = self.base.__class__.__name__
-        expected_dic["updated_at"] = self.base.updated_at.isoformat()
-        expected_dic["created_at"] = self.base.created_at.isoformat()
-        self.assertDictEqual(expected_dic, to_dict_returned_dict)
+        return inst_dict
 
-    def test_save(self):
-        """"
-            test save class method
-        """
-        before_update_time = self.base.updated_at
-        self.base.my_number = 90
-        self.base.save()
-        after_update_time = self.base.updated_at
-        self.assertNotEqual(before_update_time, after_update_time)
-        # all_objects = storage.all()
-        # new_number = all_objects[self.base.__class__.__name__ +
-        #                          "." + self.base.id]["my_number"]
-        # self.assertEqual(new_number, 90)
+    def __str__(self):
+        """ """
+        class_name = self.__class__.__name__
+        return "[{}] ({}) {}".format(class_name, self.id, self.__dict__)
 
-    def test_str(self):
-        """
-            test str method
 
-            check for string representaion
-        """
-        n = self.base.__class__.__name__
-        expected_str = f"[{n}] ({self.base.id}) <{self.base.__dict__}>"
-        self.assertEqual(self.base.__str__(), expected_str)
+if __name__ == "__main__":
+    my_model = BaseModel()
+    my_model.name = "My_First_Model"
+    my_model.my_number = 89
+    print(my_model.id)
+    print(my_model)
+    print(type(my_model.created_at))
+    print("--")
+    my_model_json = my_model.to_dict()
+    print(my_model_json)
+    print("JSON of my_model:")
+    for key in my_model_json.keys():
+        print(
+            "\t{}: ({}) - {}".format(key, type(my_model_json[key]), my_model_json[key])
+        )
+
+    print("--")
+    my_new_model = BaseModel(**my_model_json)
+    print(my_new_model.id)
+    print(my_new_model)
+    print(type(my_new_model.created_at))
+
+    print("--")
+    print(my_model is my_new_model)
